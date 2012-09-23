@@ -3854,6 +3854,9 @@ function get_all_carp_interfaces() {
  * find_carp_interface($ip): return the carp interface where an ip is defined
  */
 function find_carp_interface($ip) {
+	if (!is_ipaddr($ip)){
+		error_log("calling function with wrong ip parameter: find_carp_interface($ip)");
+	}
 	global $config;
 	if (is_array($config['virtualip']['vip'])) {
 		foreach ($config['virtualip']['vip'] as $vip) {
