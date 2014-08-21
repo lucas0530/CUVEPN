@@ -1890,6 +1890,35 @@ function update_alias_names_upon_change($section, $field, $new_alias_name, $orig
 
 }
 
+function parse_ipsubnets($file_contents) {
+	/* retrieves ip subnets and ip's from a string of data
+	 * $file_contents: a string that contains for example blocklist like DROP:  http://www.spamhaus.org/drop/drop.txt
+	 * RETURNS an array of ip subnets and ip's */
+	$address = array();
+	$file_contents = str_replace("#", "\n#", $file_contents);
+	$file_contents_split = explode("\n", $file_contents);
+	foreach($file_contents_split as $fc) {
+		// Stop at 3000 items, aliases larger than that tend to break both pf and the WebGUI.
+		if ($address_count >= 3000)
+			break;
+		$tmp = trim($fc);
+		if(stristr($fc, "#")) {
+			$tmp_split = explode("#", $tmp);
+			$tmp = trim($tmp_split[0]);
+		}
+		if(stristr($fc, " ")) {
+			$tmp_split = explode(" ", $tmp);
+			$tmp = trim($tmp_split[0]);
+		}
+		$tmp = trim($tmp);
+		if(!empty($tmp) && (is_ipaddr($tmp) || is_subnet($tmp))) {
+			$address[] = $tmp;
+			$address_count++;
+		}
+	}
+	return $address;
+}
+
 function update_alias_url_data() {
 	global $config, $g;
 
@@ -1917,21 +1946,9 @@ function update_alias_url_data() {
 					process_alias_unzip($temp_filename);
 				if (file_exists("{$temp_filename}/aliases")) {
 					$file_contents = file_get_contents("{$temp_filename}/aliases");
-					$file_contents = str_replace("#", "\n#", $file_contents);
-					$file_contents_split = explode("\n", $file_contents);
-					foreach ($file_contents_split as $fc) {
-						$tmp = trim($fc);
-						if (stristr($fc, "#")) {
-							$tmp_split = explode("#", $tmp);
-							$tmp = trim($tmp_split[0]);
-						}
-						if (trim($tmp) <> "") {
-							if ($isfirst == 1)
-								$address .= " ";
-							$address .= $tmp;
-							$isfirst = 1;
-						}
-					}
+					$address = parse_ipsubnets($file_contents);
+					$address = join(" ", $address);
+					$isfirst = count($address) > 0;
 					mwexec("/bin/rm -rf {$temp_filename}");
 				}
 			}
