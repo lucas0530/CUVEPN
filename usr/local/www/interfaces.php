@@ -1878,7 +1878,7 @@ $types6 = array("none" => gettext("None"), "staticv6" => gettext("Static IPv6"),
 													<?php
 													if(count($a_gateways) > 0) {
 														foreach ($a_gateways as $gateway) {
-															if(($gateway['interface'] == $if)  && (is_ipaddrv4($gateway['gateway']))) {
+															if(($gateway['interface'] == $if)  && (is_ipaddrv4($gateway['gateway']) || $gateway['ipprotocol'] == "inet")) {
 													?>
 															<option value="<?=$gateway['name'];?>" <?php if ($gateway['name'] == $pconfig['gateway']) echo "selected=\"selected\""; ?>>
 																<?=htmlspecialchars($gateway['name']) . " - " . htmlspecialchars($gateway['gateway']);?>
@@ -1982,7 +1982,7 @@ $types6 = array("none" => gettext("None"), "staticv6" => gettext("Static IPv6"),
 													<?php
 													if(count($a_gateways) > 0) {
 														foreach ($a_gateways as $gateway) {
-															if(($gateway['interface'] == $if) && (is_ipaddrv6($gateway['gateway']))) {
+															if(($gateway['interface'] == $if) && (is_ipaddrv6($gateway['gateway']) || $gateway['ipprotocol'] == "inet6")) {
 													?>
 															<option value="<?=$gateway['name'];?>" <?php if ($gateway['name'] == $pconfig['gatewayv6']) echo "selected=\"selected\""; ?>>
 																<?=htmlspecialchars($gateway['name']) . " - " . htmlspecialchars($gateway['gateway']);?>

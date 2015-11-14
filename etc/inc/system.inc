@@ -486,7 +486,7 @@ function system_routing_configure($interface = "") {
 		array_map('unlink', glob("{$g['tmp_path']}/*_defaultgw{,v6}", GLOB_BRACE));
 		foreach	($config['gateways']['gateway_item'] as $gateway) {
 			if (isset($gateway['defaultgw'])) {
-				if ($foundgw == false && ($gateway['ipprotocol'] != "inet6" && (is_ipaddrv4($gateway['gateway']) || $gateway['gateway'] == "dynamic"))) {
+				if ($foundgw == false && ($gateway['ipprotocol'] != "inet6" && (is_ipaddrv4($gateway['gateway']) || $gateway['gateway'] == "dynamic") || $gateway['gateway'] == "interface")) {
 					if(strpos($gateway['gateway'], ":"))
 						continue;
 					if ($gateway['gateway'] == "dynamic")
@@ -499,7 +499,7 @@ function system_routing_configure($interface = "") {
 							@file_put_contents("{$g['tmp_path']}/{$defaultif}_defaultgw", $gateway['gateway']);
 					}
 					$foundgw = true;
-				} else if ($foundgwv6 == false && ($gateway['ipprotocol'] == "inet6" && (is_ipaddrv6($gateway['gateway']) || $gateway['gateway'] == "dynamic"))) {
+				} else if ($foundgwv6 == false && ($gateway['ipprotocol'] == "inet6" && (is_ipaddrv6($gateway['gateway']) || $gateway['gateway'] == "dynamic") || $gateway['gateway'] == "interface")) {
 					if ($gateway['gateway'] == "dynamic")
 						$gateway['gateway'] = get_interface_gateway_v6($gateway['interface']);
 					$gatewayipv6 = $gateway['gateway'];
@@ -546,6 +546,9 @@ function system_routing_configure($interface = "") {
 		else if (is_ipaddrv4($gatewayip)) {
 			log_error("ROUTING: setting default route to $gatewayip");
 			mwexec("/sbin/route change -inet default " . escapeshellarg($gatewayip));
+		} elseif (!empty($defaultif) && $gatewayip = "interface") {
+			log_error("ROUTING: setting default route to interface $defaultif");
+			mwexec("/sbin/route change -inet default -iface " . escapeshellarg($defaultif));
 		}
 
 		if (!empty($interface) && $interface != $interfacegwv6)
@@ -556,6 +559,9 @@ function system_routing_configure($interface = "") {
 				$ifscope = "%{$defaultifv6}";
 			log_error("ROUTING: setting IPv6 default route to {$gatewayipv6}{$ifscope}");
 			mwexec("/sbin/route change -inet6 default " . escapeshellarg("{$gatewayipv6}{$ifscope}"));
+		} elseif (!empty($defaultifv6) && $gatewayipv6 = "interface") {
+			log_error("ROUTING: setting default route to interface $defaultifv6");
+			mwexec("/sbin/route change -inet6 default -iface " . escapeshellarg($defaultifv6));
 		}
 	}
 
