@@ -2035,6 +2035,7 @@ poudriere_bulk() {
 
 	if [ -f "${BUILDER_TOOLS}/conf/pfPorts/make.conf" ]; then
 		cp -f "${BUILDER_TOOLS}/conf/pfPorts/make.conf" /usr/local/etc/poudriere.d/${POUDRIERE_PORTS_NAME}-make.conf
+		sed -i "" "s/devel_php56-pfSense-module/devel_php56-${PRODUCT_NAME}-module/"  /usr/local/etc/poudriere.d/${POUDRIERE_PORTS_NAME}-make.conf
 	fi
 
 	# Change version of pfSense meta ports for snapshots
