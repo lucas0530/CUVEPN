@@ -597,7 +597,7 @@ function system_routing_configure($interface = "") {
 			$srinterfacegw = $gateway['interface'];
 			if (is_ipaddr($srgatewayip) && !empty($srinterfacegw)) {
 				$inet = (!is_ipaddrv4($srgatewayip) ? "-inet6" : "-inet");
-				$cmd = "/sbin/route change {$inet} " . escapeshellarg($srgatewayip) . " ";
+				$cmd = "/sbin/route add {$inet} " . escapeshellarg($srgatewayip) . " ";
 				mwexec($cmd . "-iface " . escapeshellarg($srinterfacegw));
 				if (isset($config['system']['route-debug'])) {
 					$mt = microtime();
@@ -612,7 +612,7 @@ function system_routing_configure($interface = "") {
 			;
 		} else if (is_ipaddrv4($gatewayip)) {
 			log_error(sprintf(gettext("ROUTING: setting default route to %s"), $gatewayip));
-			mwexec("/sbin/route change -inet default " . escapeshellarg($gatewayip));
+			mwexec("/sbin/route add -inet default " . escapeshellarg($gatewayip));
 		}
 
 		if (!empty($interface) && $interface != $interfacegwv6) {
@@ -623,7 +623,7 @@ function system_routing_configure($interface = "") {
 				$ifscope = "%{$defaultifv6}";
 			}
 			log_error(sprintf(gettext("ROUTING: setting IPv6 default route to %s"), $gatewayipv6 . $ifscope));
-			mwexec("/sbin/route change -inet6 default " . escapeshellarg("{$gatewayipv6}{$ifscope}"));
+			mwexec("/sbin/route add -inet6 default " . escapeshellarg("{$gatewayipv6}{$ifscope}"));
 		}
 	}
 
