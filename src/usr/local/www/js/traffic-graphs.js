@@ -27,6 +27,7 @@ function draw_graph(refreshInterval, then, backgroundupdate) {
 	startTime = 120 * refreshInterval;
 	then.setSeconds(then.getSeconds() - startTime);
 	var thenTime = then.getTime();
+	var refreshGraphFunction_running = false;
 
 	$.each( window.interfaces, function( key, value ) {
 		myData[value]['interfacename'] = graph_interfacenames[value];
@@ -125,9 +126,13 @@ function draw_graph(refreshInterval, then, backgroundupdate) {
 	});
 
 	var refreshGraphFunction = function(){
+		if (refreshGraphFunction_running) {
+			return;
+		}
+		refreshGraphFunction_running = true;
 		d3.json("ifstats.php")
 		.header("Content-Type", "application/x-www-form-urlencoded")
-		.post('if='+window.interfaces.join('|'), function(error, json) { //TODO all ifs again
+		.post('if='+window.interfaces.join('|')+'&realif='+window.realinterfaces.join('|'), function(error, json) { //TODO all ifs again
 
 			if (error) {
 
@@ -192,7 +197,6 @@ function draw_graph(refreshInterval, then, backgroundupdate) {
 				myData[key][0].first = false;
 				myData[key][1].first = false;
 
-
 				myData[key][0].values.shift();
 				myData[key][1].values.shift();
 
@@ -208,6 +212,7 @@ function draw_graph(refreshInterval, then, backgroundupdate) {
 
 			});
 
+			refreshGraphFunction_running = false;
 		});
 
 	}

@@ -158,6 +158,7 @@ if ($_POST) {
 $refreshinterval = $a_config["refreshinterval"];
 
 $ifsarray = [];
+$realifsarray = [];
 
 foreach ($a_config["shown"]["item"] as $ifname) {
 
@@ -165,6 +166,7 @@ foreach ($a_config["shown"]["item"] as $ifname) {
 
 	if ($ifinfo['status'] != "down") {
 		$ifsarray[] = $ifname;
+		$realifsarray[] = get_real_interface($ifname);
 	} else {
 		//TODO throw error?
 	}
@@ -202,6 +204,7 @@ var graph_interfacenames = <?php
 events.push(function() {
 
 	var InterfaceString = "<?=$allifs?>";
+	var RealInterfaceString = "<?=implode("|", $realifsarray)?>";
 
 	//store saved settings in a fresh localstorage
 	localStorage.clear();
@@ -211,6 +214,7 @@ events.push(function() {
 	localStorage.setItem('backgroundupdate', <?=$a_config["backgroundupdate"]?>);
 
 	window.interfaces = InterfaceString.split("|");
+	window.realinterfaces = RealInterfaceString.split("|");
 	window.charts = {};
     window.myData = {};
     window.updateIds = 0;

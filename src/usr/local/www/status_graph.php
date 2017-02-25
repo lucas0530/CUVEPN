@@ -220,6 +220,7 @@ $section->add($group);
 $form->add($section);
 print $form;
 
+$realif = get_real_interface($curif);
 ?>
 
 <script src="/vendor/d3/d3.min.js"></script>
@@ -234,6 +235,7 @@ print $form;
 events.push(function() {
 
 	var InterfaceString = "<?=$curif?>";
+	var RealInterfaceString = "<?=$realif?>";
 
 	//store saved settings in a fresh localstorage
 	localStorage.clear();
@@ -241,6 +243,7 @@ events.push(function() {
 	localStorage.setItem('invert', "true");
 	localStorage.setItem('size', 1);
 	window.interfaces = InterfaceString.split("|");
+	window.realinterfaces = RealInterfaceString.split("|");
 	window.charts = {};
     window.myData = {};
     window.updateIds = 0;
