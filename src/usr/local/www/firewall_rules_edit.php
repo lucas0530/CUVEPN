@@ -289,7 +289,9 @@ if (isset($id) && $a_filter[$id]) {
 	}
 
 	$pconfig['tracker'] = $a_filter[$id]['tracker'];
-
+	
+	
+	$pconfig['interface_out'] = explode(',', $a_filter[$id]['interface_out']);
 } else {
 	/* defaults */
 	if ($_REQUEST['if']) {
@@ -927,7 +929,9 @@ if ($_POST['save']) {
 		if ($_POST['vlanprioset'] != "") {
 			$filterent['vlanprioset'] = $_POST['vlanprioset'];
 		}
-
+		if (is_array($_POST['interface_out'])) {
+			$filterent['interface_out'] = implode(',', $_POST['interface_out']);
+		}
 		// If we have an associated nat rule, make sure the source and destination doesn't change
 		if (isset($a_filter[$id]['associated-rule-id'])) {
 			$filterent['interface'] = $a_filter[$id]['interface'];
@@ -1106,6 +1110,8 @@ function build_if_list() {
 
 	return($iflist);
 }
+
+$iflist_out = get_pf_interfaces();
 
 $pgtitle = array(gettext("Firewall"), gettext("Rules"));
 $pglinks = array("");
@@ -1542,6 +1548,16 @@ $section->addInput(new Form_Input(
 	'text',
 	$pconfig['tagged']
 ))->setHelp('A packet can be matched on a mark placed before on another rule.');
+
+$section->addInput(new Form_Select(
+	'interface_out',
+	'Interfaces allowed out',
+	$pconfig['interface_out'],
+	$iflist_out,
+	true
+))->setHelp('Select the interfaces traffic will be allowed to travel out on.'.
+		'This overrides the tag in the rule, and if destination is set to "any" ' . 
+		'it is implicitly changed to "NOT This firewall (self)". If no interfaces are selected any interface will be allowed.');
 
 $section->addInput(new Form_Input(
 	'max',

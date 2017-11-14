@@ -120,6 +120,50 @@ define("USER_LABEL_INTRO", "USER_RULE: ");
 $tracker = 1000000000;
 $negate_tracker = 10000000;
 
+function get_pf_interfaces() {
+	$ifdescs = get_configured_interface_with_descr();
+
+	/* add group interfaces */
+	if (is_array($config['ifgroups']['ifgroupentry'])) {
+		foreach ($config['ifgroups']['ifgroupentry'] as $ifgen) {
+			if (have_ruleint_access($ifgen['ifname'])) {
+				$iflist[$ifgen['ifname']] = $ifgen['ifname'];
+			}
+		}
+	}
+
+	foreach ($ifdescs as $ifent => $ifdesc) {
+		if (have_ruleint_access($ifent)) {
+			$iflist[$ifent] = $ifdesc;
+		}
+	}
+
+	if ($config['l2tp']['mode'] == "server") {
+		if (have_ruleint_access("l2tp")) {
+			$iflist['l2tp'] = gettext("L2TP VPN");
+		}
+	}
+
+	if (is_array($config['pppoes']['pppoe'])) {
+		foreach ($config['pppoes']['pppoe'] as $pppoes) {
+			if (($pppoes['mode'] == 'server') && have_ruleint_access("pppoe")) {
+				$iflist['pppoe'] = gettext("PPPoE Server");
+			}
+		}
+	}
+
+	/* add ipsec interfaces */
+	if (ipsec_enabled() && have_ruleint_access("enc0")) {
+		$iflist["enc0"] = gettext("IPsec");
+	}
+
+	/* add openvpn/tun interfaces */
+	if ($config['openvpn']["openvpn-server"] || $config['openvpn']["openvpn-client"]) {
+		$iflist["openvpn"] = gettext("OpenVPN");
+	}
+	return $iflist;
+}
+
 function filter_rule_tracker($tracker) {
 	global $tracker;
 
@@ -408,6 +452,7 @@ function filter_configure_sync($delete_states_if_needed = true) {
 		@copy("{$g['tmp_path']}/rules.debug", "{$g['tmp_path']}/rules.debug.old");
 	}
 
+	$rules = str_replace("\r\n", "\n", $rules);
 	if (!@file_put_contents("{$g['tmp_path']}/rules.debug", $rules, LOCK_EX)) {
 		log_error("WARNING: Could not write new rules!");
 		unlock($filterlck);
@@ -2405,6 +2450,27 @@ function filter_nat_rules_generate() {
 	return $natrules;
 }
 
+function filter_generate_user_rule_out_arr($rule) {
+	$res = array();
+	if (!empty($rule['interface_out'])) {
+		$interfaces = explode(',', $rule['interface_out']);
+		$rif = array();
+		foreach($interfaces as $if) {
+			$rif[] = get_real_interface($if);
+		}
+		$rif = implode(",", $rif);
+		if ($rule['descr'] != "") {
+			$label = "label \"" . fix_rule_label(USER_LABEL_INTRO . "{$rule['descr']}") . "\"";
+		} else {
+			$label = "label \"USER_RULE\"";
+		}
+		$tag = "mytag{$rule['tracker']}";
+		$res[]['rule'] = "block out log tagged \"{$tag}\" $label " ;
+		$res[]['rule'] = "pass out on { {$rif} } tagged \"{$tag}\" $label " ;
+	}
+	return $res;
+}
+
 function filter_generate_user_rule_arr($rule) {
 	global $config;
 	update_filter_reload_status(sprintf(gettext("Creating filter rule %s ..."), $rule['descr']));
@@ -2853,7 +2919,12 @@ function filter_generate_user_rule($rule) {
 	if (empty($dst) || ($dst == "/")) {
 		return "# returning at dst $dst == \"/\"";
 	}
-	$aline['dst'] = "to $dst ";
+	
+	if ($dst == 'any' && count($rule['interface_out']) > 0) {
+		$aline['dst'] = "to !(self) ";
+	} else {
+		$aline['dst'] = "to $dst ";
+	}
 
 	if ($rule['protocol'] == "icmp" && $rule['icmptype'] && ($rule['icmptype'] != 'any')) {
 		$icmptype_key = ($rule['ipprotocol'] == 'inet6' ? 'icmp6-type' : 'icmp-type');
@@ -2862,7 +2933,11 @@ function filter_generate_user_rule($rule) {
 		$icmptype_text = (strpos($icmptype_text, ",") === false ? $icmptype_text : '{ ' . $icmptype_text . ' }');
 		$aline[$icmptype_key] = "{$icmptype_key} {$icmptype_text} ";
 	}
-	
+
+	if (count($rule['interface_out']) > 0) {
+		$tag = "mytag{$rule['tracker']}";
+		$aline['tag'] = " tag \"" .$tag. "\" ";
+	} else
 	if (!empty($rule['tag'])) {
 		$aline['tag'] = " tag \"" .$rule['tag']. "\" ";
 	}
@@ -3675,6 +3750,7 @@ EOD;
 
 	if (isset($config['filter']['rule'])) {
 		/* Pre-cache all our rules so we only have to generate them once */
+		$rule_arr0 = array();
 		$rule_arr1 = array();
 		$rule_arr2 = array();
 		$rule_arr3 = array();
@@ -3693,6 +3769,7 @@ EOD;
 				continue;
 			}
 
+			$rule_arr0 = array_merge($rule_arr0, filter_generate_user_rule_out_arr($rule));
 			if (!empty($rule['ipprotocol']) && $rule['ipprotocol'] == "inet46") {
 				if (isset($rule['floating'])) {
 					$rule['ipprotocol'] = "inet";
@@ -3728,6 +3805,15 @@ EOD;
 		$ipfrules .= "\n# User-defined rules follow\n";
 		$ipfrules .= "\nanchor \"userrules/*\"\n";
 		/* Generate user rule lines */
+		foreach ($rule_arr0 as $rule) {
+			if (isset($rule['disabled'])) {
+				continue;
+			}
+			if (!$rule['rule']) {
+				continue;
+			}
+			$ipfrules .= "{$rule['rule']} {$rule['descr']}\n";
+		}
 		foreach ($rule_arr1 as $rule) {
 			if (isset($rule['disabled'])) {
 				continue;
